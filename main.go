@@ -164,7 +164,8 @@ func (sc *ServerConfig) StartServer() error {
 	return nil
 }
 
-func NewServerConfig(listen, listenReload string, enableXff bool, subscribe bool, answers string, reloadInterval int64) *ServerConfig {
+func NewServerConfig(listen, listenReload string, enableXff bool,
+	subscribe bool, answers string, reloadInterval int64) *ServerConfig {
 	router := mux.NewRouter()
 	reloadRouter := mux.NewRouter()
 	reloadChan := make(chan chan error)
@@ -280,6 +281,7 @@ func (sc *ServerConfig) root(w http.ResponseWriter, req *http.Request) {
 		url, err := sc.router.Get("Version").URL("version", k)
 		if err == nil {
 			m[k] = (*url).String()
+			log.Debugf("GET1 (*url).String()： %s", (*url).String())
 		} else {
 			log.Warn("Error: ", err.Error())
 		}
@@ -291,6 +293,7 @@ func (sc *ServerConfig) root(w http.ResponseWriter, req *http.Request) {
 		url, err := sc.router.Get("Version").URL("version", "latest")
 		if err == nil {
 			m["latest"] = (*url).String()
+			log.Debugf("GET2 (*url).String()： %s", (*url).String())
 		} else {
 			log.Warn("Error: ", err.Error())
 		}
@@ -345,7 +348,6 @@ func (sc *ServerConfig) metadata(w http.ResponseWriter, req *http.Request) {
 
 	log.Debugf("Searching for: %s version=%v client=%v wait=%v oldValue=%v maxWait=%v", displayKey, version, clientIp, wait, oldValue, maxWait)
 	val, ok := sc.metadataController.LookupAnswer(wait, oldValue, version, clientIp, pathSegments, time.Duration(maxWait)*time.Second)
-
 	if ok {
 		log.Debugf("OK: %s version=%v client=%v", displayKey, version, clientIp)
 		respondSuccess(w, req, val)

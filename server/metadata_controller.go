@@ -34,7 +34,8 @@ func NewMetadataController(subscribe bool, answersFileNamePrefix string, reloadI
 
 func (mc *MetadataController) Start() error {
 	//register default metadata server
-	mc.RegisterMetaDataServer(os.Getenv("CATTLE_URL"),
+	mc.RegisterMetaDataServer(
+		os.Getenv("CATTLE_URL"),
 		os.Getenv("CATTLE_ACCESS_KEY"),
 		os.Getenv("CATTLE_SECRET_KEY"), true, false)
 
@@ -97,7 +98,8 @@ func (mc *MetadataController) GetVersions() config.Versions {
 	return mc.versions
 }
 
-func (mc *MetadataController) RegisterMetaDataServer(url string, accessKey string, secretKey string, local bool, subscribe bool) error {
+func (mc *MetadataController) RegisterMetaDataServer(url string,
+	accessKey string, secretKey string, local bool, subscribe bool) error {
 	create := false
 	if mc.metadataServers == nil {
 		mc.metadataServers = make(map[string]*MetadataServer)
