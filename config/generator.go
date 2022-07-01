@@ -71,8 +71,39 @@ func NewGenerator(local bool, answersFilePath string) *Generator {
 }
 
 func (g *Generator) GenerateAnswers(data []map[string]interface{}) (Versions, []Credential, error) {
-	versions := make(map[string]Answers)
+	data = make([]map[string]interface{}, 0)
+	var metadatas = make(map[string]interface{})
 
+	////
+	var networks = make(map[string]interface{})
+
+	networks["interfaces"] = "macs"
+	//
+	metadatas["metadata_kind"] = "metadata"
+	metadatas["uuid"] = "127.0.0.1"
+	metadatas["create-time"] = "2015-03-17 02:51:39"
+	metadatas["hostname"] = "instance-cpl7zf23"
+	metadatas["image-id"] = "m-Fo9uGvmO"
+	metadatas["instance-action"] = "none"
+	metadatas["instance-id"] = "64371fe0-75a9-4734-845f-f0e487eba0a9"
+	metadatas["instance-name"] = "instance-cpl7zf23"
+	metadatas["instance-specs"] = "1-1024-20-0"
+	metadatas["instance-type"] = "1-1024-20-0"
+	metadatas["instance-type-ex"] = "bcc"
+	metadatas["ipv6-prefixlen"] = "64"
+	metadatas["local-hostname"] = "instance-cpl7zf23"
+	metadatas["local-ipv4"] = "192.168.0.4"
+	metadatas["public-ipv4"] = "10.17.2.212"
+	metadatas["reservation-id"] = "r-z0e171jg"
+	metadatas["serial-number"] = "64371fe0-75a9-4734-845f-f0e487eba0a9"
+	metadatas["serial-number"] = "64371fe0-75a9-4734-845f-f0e487eba0a9"
+	metadatas["networks"] = networks
+	metadatas["create-time"] = "2015-03-17 02:51:39"
+	metadatas["create-time"] = "2015-03-17 02:51:39"
+
+	data = append(data, metadatas)
+	//
+	versions := make(map[string]Answers)
 	var creds []Credential
 	for _, v := range g.supportedVersions {
 		// 1. generate interim data
@@ -81,6 +112,7 @@ func (g *Generator) GenerateAnswers(data []map[string]interface{}) (Versions, []
 			UUIDToContainer:                 make(map[string]map[string]interface{}),
 			UUIDToStack:                     make(map[string]map[string]interface{}),
 			UUIDToHost:                      make(map[string]map[string]interface{}),
+			Metadata:                        make(map[string]interface{}),
 			StackUUIDToServicesUUID:         make(map[string][]string),
 			ServiceUUIDNameToContainersUUID: make(map[string][]string),
 			ContainerUUIDToContainerLink:    make(map[string]map[string]interface{}),
@@ -111,7 +143,7 @@ func (g *Generator) GenerateAnswers(data []map[string]interface{}) (Versions, []
 }
 
 func (g *Generator) generateVersions(interim *Interim, version string, versions Versions) error {
-	versionedData, err := applyVersionToData(*interim, version)
+	versionedData, err := applyVersionToData(*interim, version) //多数据做一些变化
 	if err != nil {
 		return err
 	}
@@ -193,6 +225,15 @@ func (g *Generator) addDefaultToAnswers(answers Answers, versionedData *Interim)
 		services = append(services, s)
 	}
 	defaultAnswers["services"] = services
+
+	//var metadata []interface{}
+	//for _, s := range versionedData.Metadata {
+	//	if _, ok := defaultAnswers["metadata"]; ok {
+	//		metadata = defaultAnswers["metadata"].([]interface{})
+	//	}
+	//	metadata = append(services, s)
+	//}
+	defaultAnswers["metadata"] = versionedData.Metadata
 
 	var hosts []interface{}
 	for _, h := range versionedData.UUIDToHost {
@@ -379,6 +420,30 @@ func applyVersionToData(modified Interim, version string) (*Interim, error) {
 		}
 	}
 
+	// 3. Process stacks
+	//for _, s := range modified.Metadata {
+	//	var svcs []interface{}
+	//	var svcsNames []interface{}
+	//	svcsUUIDs := modified.StackUUIDToServicesUUID[s["uuid"].(string)]
+	//	if svcsUUIDs != nil {
+	//		for _, svcUUID := range svcsUUIDs {
+	//			if svc, ok := modified.UUIDToService[svcUUID]; ok {
+	//				svcs = append(svcs, svc)
+	//				svcsNames = append(svcsNames, svc["name"].(string))
+	//			}
+	//		}
+	//	}
+	//	switch version {
+	//	case METADATA_VERSION1:
+	//		s["services"] = svcsNames
+	//	case METADATA_VERSION2:
+	//		s["services"] = svcs
+	//	case METADATA_VERSION3:
+	//		s["services"] = svcs
+	//		s["name"] = strings.ToLower(s["name"].(string))
+	//	}
+	//}
+
 	// 4. process hosts
 	for _, h := range modified.UUIDToHost {
 		switch version {
@@ -415,6 +480,8 @@ func processMetadataObject(o map[string]interface{}, interim *Interim) {
 			addEnvironment(o, interim)
 		case "credential":
 			addCredential(o, interim)
+		case "metadata":
+			addMetadata(o, interim)
 		}
 	}
 }
@@ -434,6 +501,10 @@ func addEnvironment(env map[string]interface{}, interim *Interim) {
 
 func addContainer(container map[string]interface{}, interim *Interim) {
 	interim.UUIDToContainer[container["uuid"].(string)] = container
+}
+
+func addMetadata(metadata map[string]interface{}, interim *Interim) {
+	interim.Metadata = metadata
 }
 
 func addService(service map[string]interface{}, interim *Interim) {
@@ -591,15 +662,22 @@ func (g *Generator) readVersionsFromFile() (Versions, []Credential, error) {
 
 	err = json.NewDecoder(f).Decode(&md)
 	if err != nil {
-		return nil, nil, err
+		log.Warn("Failed to NewDecoder(f).Decode(&md) err: %v", err)
+		//return nil, nil, err
 	}
+
+	log.Infof("Get md: %#v, md.Data: %v", md, string(md.Data))
 
 	delta, _, err := g.GenerateDelta(bytes.NewBuffer(md.Data))
 	if err != nil {
-		return v, nil, err
+		log.Warn("Failed to g.GenerateDelta err: %v", err)
+		//return v, nil, err
 	}
 
 	v, creds, err := g.GenerateAnswers(delta)
+	if err != nil {
+		log.Warn("Failed to g.GenerateAnswers(delta) err: %v", err)
+	}
 
 	return v, creds, err
 }

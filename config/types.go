@@ -12,14 +12,15 @@ const METADATA_VERSION3 = "2016-07-29"
 var SUPPORTED_VERSIONS = []string{METADATA_VERSION1, METADATA_VERSION2, METADATA_VERSION3}
 var MAGIC_ARRAY_KEYS = []string{"name", "uuid"}
 
-type Versions map[string]Answers
-type Answers map[string]interface{}
+type Versions map[string]Answers    // key: version: 2015-07-25 2015-12-19
+type Answers map[string]interface{} // key: metadata userdata
 
 type Interim struct {
-	UUIDToService                   map[string]map[string]interface{}
+	UUIDToService                   map[string]map[string]interface{} // key: uuid
 	UUIDToContainer                 map[string]map[string]interface{}
 	UUIDToStack                     map[string]map[string]interface{}
 	UUIDToHost                      map[string]map[string]interface{}
+	Metadata                        map[string]interface{}
 	ServiceUUIDNameToContainersUUID map[string][]string
 	StackUUIDToServicesUUID         map[string][]string
 	ContainerUUIDToContainerLink    map[string]map[string]interface{}
